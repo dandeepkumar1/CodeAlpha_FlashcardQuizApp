@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flashcard Quiz App</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    body {
+      background-color: #f4f7fe;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .app-container {
+      background: #ffffff;
+      width: 100%;
+      max-width: 500px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      padding: 24px;
+    }
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-top: 0;
+    }
+    .card-counter {
+      text-align: center;
+      color: #7f8c8d;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+    .flashcard {
+      background: #4a90e2;
+      color: white;
+      min-height: 180px;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+    }
+    .card-text {
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 15px;
+    }
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .btn-light {
+      background: white;
+      color: #4a90e2;
+    }
+    .btn-light:hover {
+      background: #eef5fc;
+    }
+    .btn-primary {
+      background: #4a90e2;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #357abd;
+    }
+    .btn-danger {
+      background: #e74c3c;
+      color: white;
+    }
+    .btn-danger:hover {
+      background: #c0392b;
+    }
+    .nav-controls, .action-controls {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .action-controls {
+      border-top: 1px solid #eee;
+      padding-top: 20px;
+    }
+    .form-container {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+      display: none;
+    }
+    .form-group {
+      margin-bottom: 10px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: bold;
+      color: #555;
+      margin-bottom: 4px;
+    }
+    .form-group input, .form-group textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <h1>Flashcard Quiz</h1>
+  
+  <div class="card-counter" id="counter">Card 1 of 1</div>
+
+  <div class="flashcard">
+    <div class="card-text" id="cardText">Sawal yahan nazar aayega</div>
+    <button class="btn btn-light" id="toggleBtn" onclick="toggleAnswer()">Show Answer</button>
+  </div>
+
+  <div class="nav-controls">
+    <button class="btn btn-primary" onclick="prevCard()">Previous</button>
+    <button class="btn btn-primary" onclick="nextCard()">Next</button>
+  </div>
+
+  <div class="action-controls">
+    <button class="btn btn-primary" onclick="showAddForm()">+ Add Card</button>
+    <button class="btn btn-primary" onclick="showEditForm()">Edit</button>
+    <button class="btn btn-danger" onclick="deleteCard()">Delete</button>
+  </div>
+
+  <!-- Form for Adding / Editing Cards -->
+  <div class="form-container" id="cardForm">
+    <h3 id="formTitle" style="margin-top: 0;">Add New Card</h3>
+    <div class="form-group">
+      <label>Question (Front)</label>
+      <input type="text" id="questionInput" placeholder="Enter question...">
+    </div>
+    <div class="form-group">
+      <label>Answer (Back)</label>
+      <textarea id="answerInput" rows="3" placeholder="Enter answer..."></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="hideForm()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCard()">Save Card</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Initial Sample Cards
+  let cards = [
+    { question: "Pakistan ka Darul Hukumat (Capital) konsa hai?", answer: "Islamabad" },
+    { question: "HTML ka matlab kya hai?", answer: "HyperText Markup Language" }
+  ];
+
+  let currentIndex = 0;
+  let isShowingAnswer = false;
+  let editIndex = null;
+
+  function updateCardUI() {
+    const cardText = document.getElementById("cardText");
+    const toggleBtn = document.getElementById("toggleBtn");
+    const counter = document.getElementById("counter");
+
+    if (cards.length === 0) {
+      cardText.innerText = "Koi card maujood nahi hai. Naya card add karein!";
+      toggleBtn.style.display = "none";
+      counter.innerText = "Card 0 of 0";
+      return;
+    }
+
+    toggleBtn.style.display = "inline-block";
+    counter.innerText = `Card ${currentIndex + 1} of ${cards.length}`;
+
+    if (isShowingAnswer) {
+      cardText.innerText = cards[currentIndex].answer;
+      toggleBtn.innerText = "Show Question";
+    } else {
+      cardText.innerText = cards[currentIndex].question;
+      toggleBtn.innerText = "Show Answer";
+    }
+  }
+
+  function toggleAnswer() {
+    isShowingAnswer = !isShowingAnswer;
+    updateCardUI();
+  }
+
+  function nextCard() {
+    if (cards.length === 0) return;
+    isShowingAnswer = false;
+    currentIndex = (currentIndex + 1) % cards.length;
+    updateCardUI();
+  }
+
+  function prevCard() {
+    if (cards.length === 0) return;
+    isShowingAnswer = false;
+    currentIndex = (currentIndex - 1 + cards.length) % cards.length;
+    updateCardUI();
+  }
+
+  function showAddForm() {
+    editIndex = null;
+    document.getElementById("formTitle").innerText = "Add New Card";
+    document.getElementById("questionInput").value = "";
+    document.getElementById("answerInput").value = "";
+    document.getElementById("cardForm").style.display = "block";
+  }
+
+  function showEditForm() {
+    if (cards.length === 0) return;
+    editIndex = currentIndex;
+    document.getElementById("formTitle").innerText = "Edit Card";
+    document.getElementById("questionInput").value = cards[currentIndex].question;
+    document.getElementById("answerInput").value = cards[currentIndex].answer;
+    document.getElementById("cardForm").style.display = "block";
+  }
+
+  function hideForm() {
+    document.getElementById("cardForm").style.display = "none";
+  }
+
+  function saveCard() {
+    const q = document.getElementById("questionInput").value.trim();
+    const a = document.getElementById("answerInput").value.trim();
+
+    if (!q || !a) {
+      alert("Please dono fields fill karein!");
+      return;
+    }
+
+    if (editIndex !== null) {
+      cards[editIndex] = { question: q, answer: a };
+    } else {
+      cards.push({ question: q, answer: a });
+      currentIndex = cards.length - 1;
+    }
+
+    isShowingAnswer = false;
+    hideForm();
+    updateCardUI();
+  }
+
+  function deleteCard() {
+    if (cards.length === 0) return;
+    
+    cards.splice(currentIndex, 1);
+    if (currentIndex >= cards.length && cards.length > 0) {
+      currentIndex = cards.length - 1;
+    }
+    isShowingAnswer = false;
+    updateCardUI();
+  }
+
+  // Initial Load
+  updateCardUI();
+</script>
+
+</body>
+</html>
+
+```
